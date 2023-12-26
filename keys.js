@@ -1,0 +1,4 @@
+const API_KEY="512ace07-1992-4c0b-a029-05be5232509a"
+const API_SECRET= "GehNrBxaT-ydDcamPYheWj-Slpol3e0uFRO3TJWnTzQxOThiNjMxYS05ZjJiLTQ0M2EtODVjYy03MTJmYjI2YjBiMTc"
+
+module.exports = {API_KEY,API_SECRET}
