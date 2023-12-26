@@ -1,6 +1,7 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const { API_KEY, API_SECRET } = require("./keys");
+const fs = require('fs')
 
 const apiUrl = 'https://testnet-api.phemex.com'; // Use the correct API URL (testnet or production)
 const apiKey = API_KEY;
@@ -9,9 +10,19 @@ const endpoint = '/spot/orders'; // Replace with the correct endpoint for placin
 
 
 const products = axios.get('https://testnet-api.phemex.com/public/products').then((response) => {
-  console.log(response.data.data.products.find((product) => {
-    return product.symbol.includes("BTC") && product.type == 'Spot'
-  }))
+  // console.log(response.data.data.products.find((product) => {
+  //   return product.symbol.includes("BTC") && product.type == 'Spot'
+  // }))
+  // fs.writeFile('./pairs.txt', JSON.stringify(response.data.data.products), err => {
+  //   console.log(err)
+  // })
+
+  fs.writeFileSync('./pairs.json', JSON.stringify(
+    response.data.data.products.filter(product => {
+      return product.type == 'Spot'
+    })
+    ));
+  
 })
 
 // Construct the request body for your order

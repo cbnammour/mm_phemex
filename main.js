@@ -1,6 +1,7 @@
 const WebSocket = require("ws");
 const { API_KEY, API_SECRET } = require("./keys");
 const { default: axios } = require("axios");
+const executeOrder = require("./executeOrder");
 
 // WebSocket URL
 // const wsUrl = "wss://ws.phemex.com";
@@ -40,30 +41,39 @@ ws.on("open", () => {
   });
   ws.send(auth);
 
-  const subscribeTrade = JSON.stringify({
-    id: 9,
-    method:"trade.subscribe",
-    params:[
-      "BTCUSD"
-    ]
-  })
+  const ping = {
+    id: 1,
+    method: "server.ping",
+    params: [],
+  };
 
-  ws.send(subscribeTrade)
+  setInterval(() => {
+    const message = JSON.stringify(ping);
+    ws.send(message);
+    console.log("Message sent:", message);
+  }, 20000);
+  // const subscribeTrade = JSON.stringify({
+  //   id: 9,
+  //   method:"trade.subscribe",
+  //   params:[
+  //     "BTCUSD"
+  //   ]
+  // })
 
+  // ws.send(subscribeTrade)
 });
 
 ws.on("message", (data) => {
   const received = JSON.parse(data);
 
-  if(received.trades) {
-    console.log(received)
-  }
+  // if(received.trades) {
+  //   console.log(received)
+  // }
 
   if (received.result) {
-    // console.log(received);
-    return
+    console.log(received);
+    // return
   }
-
 
   if (received.depth == 0) {
     console.log(received.book);
@@ -88,6 +98,19 @@ ws.on("message", (data) => {
       // const priceDiffPercentage = ((2*priceDiff)/(lowestAsk+highestBid) )*100
       console.log(spread);
       console.log(spreadPerc);
+
+      const multiplier = calculateOrderMultiplier(spread, 1/3);
+      const newLA =
+        parseInt((parseFloat(lowestAsk) - multiplier) / 100000000) * 100000000;
+      const newHB =
+        parseInt((parseFloat(highestBid) + multiplier) / 100000000) * 100000000;
+
+      if (!checkConditions(lowestAsk, highestBid, 0.001, newLA, newHB)) {
+        return;
+      }
+
+      executeOrder(symbol, "Sell", 10000, newLA);
+      executeOrder(symbol, "Buy", 10000, newHB);
     }
   }
 });
@@ -144,4 +167,21 @@ async function placeOrder(orderType, quantity, price, symbol) {
   } catch (err) {
     console.log(err);
   }
+}
+
+function calculateOrderMultiplier(spread, margin) {
+  return spread * margin;
+}
+
+function checkConditions(LA, HB, feesPerc, newLA, newHB) {
+  let condition = false;
+  if (
+    newLA > newHB &&
+    LA > HB &&
+    (1 - feesPerc) * newLA > (1 + feesPerc) * newHB
+  ) {
+    condition = true;
+  }
+
+  return condition;
 }
