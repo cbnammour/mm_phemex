@@ -39,14 +39,31 @@ ws.on("open", () => {
     id: 0,
   });
   ws.send(auth);
+
+  const subscribeTrade = JSON.stringify({
+    id: 9,
+    method:"trade.subscribe",
+    params:[
+      "BTCUSD"
+    ]
+  })
+
+  ws.send(subscribeTrade)
+
 });
 
 ws.on("message", (data) => {
   const received = JSON.parse(data);
 
-  if (received.result) {
-    console.log(received);
+  if(received.trades) {
+    console.log(received)
   }
+
+  if (received.result) {
+    // console.log(received);
+    return
+  }
+
 
   if (received.depth == 0) {
     console.log(received.book);

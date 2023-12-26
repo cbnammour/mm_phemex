@@ -5,22 +5,24 @@ const { API_KEY, API_SECRET } = require("./keys");
 const apiUrl = 'https://testnet-api.phemex.com'; // Use the correct API URL (testnet or production)
 const apiKey = API_KEY;
 const apiSecret = API_SECRET;
-const endpoint = '/orders'; // Replace with the correct endpoint for placing orders
+const endpoint = '/spot/orders'; // Replace with the correct endpoint for placing orders
+
+
+const products = axios.get('https://testnet-api.phemex.com/public/products').then((response) => {
+  console.log(response.data.data.products.find((product) => {
+    return product.symbol.includes("BTC") && product.type == 'Spot'
+  }))
+})
 
 // Construct the request body for your order
 const orderRequestBody = {
-  // Replace with your order details
-  symbol: 'BTCUSD',
-  clOrdID: '', // You can provide a custom client order ID if needed
-  side: 'Buy', // Buy order
-  qtyType: 'ByBase', // Quantity specified in terms of the base currency
-  quoteQtyEv: 0,
-  baseQtyEv: 0.1, // 0.01 BTC (0.01 * 100,000,000 Satoshi)
-  priceEp: Math.round(45000 * 100000000), // Rounded to the nearest Satoshi
-  stopPxEp: 0,
-  trigger: 'UNSPECIFIED',
-  ordType: 'Limit', // Limit order
-  timeInForce: 'GoodTillCancel', // Order remains open until canceled
+  symbol: 'sBTCUSDT',
+  side: 'Sell',
+  qtyType: 'ByBase',
+  baseQtyEv: 10000, // This represents 1 USDT
+  priceEp: 4246700000000,
+  ordType: 'Limit',
+  timeInForce: 'GoodTillCancel',
 };
 
 // Calculate the request expiry timestamp (Now() + 1 minute)
@@ -49,7 +51,7 @@ const headers = {
 // Make the POST request to place the buy limit order
 axios.post(`${apiUrl}${endpoint}`, orderRequestBody, { headers })
   .then((response) => {
-    console.log('Buy limit order placed successfully:', response.data);
+    console.log(response);
     // console.log(response);
   })
   .catch((error) => {
