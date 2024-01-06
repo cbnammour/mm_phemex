@@ -1,30 +1,17 @@
 const axios = require("axios");
 const crypto = require("crypto");
 const { API_KEY, API_SECRET } = require("./keys");
-const fs = require("fs");
 
-function executeOrder(symbol, side, qty, price) {
+function cancelAllOrders(symbol, untriggered = true) {
   const apiUrl = "https://testnet-api.phemex.com"; // Use the correct API URL (testnet or production)
   const apiKey = API_KEY;
   const apiSecret = API_SECRET;
-  const endpoint = "/spot/orders"; // Replace with the correct endpoint for placing orders
-
-  const orderRequestBody = {
-    symbol: symbol,
-    side: side,
-    qtyType: "ByBase",
-    baseQtyEv: qty,
-    priceEp: price,
-    ordType: "Limit", //side === "Sell" ? "Limit" : "Stop" ,
-    timeInForce: "GoodTillCancel",
-  };
+  const endpoint = `/spot/orders/all?symbol=${symbol}&untriggered=${untriggered}`;
 
   const now = Math.floor(Date.now() / 1000); // Current time in seconds
   const expiry = now + 60;
 
-  const queryString = "";
-  const signatureString =
-    endpoint + queryString + expiry + JSON.stringify(orderRequestBody);
+  const signatureString = endpoint + expiry;
 
   // Calculate the HMAC SHA256 signature using your API Secret
   const signature = crypto
@@ -41,18 +28,18 @@ function executeOrder(symbol, side, qty, price) {
   };
 
   axios
-    .post(`${apiUrl}${endpoint}`, orderRequestBody, { headers })
+    .delete(`${apiUrl}${endpoint}`, { headers })
     .then((response) => {
-      console.log(response);
-      // console.log(response);
+      console.log("Successfully canceled all orders:", response.data);
     })
     .catch((error) => {
       console.error(
-        "Error placing buy limit order:",
+        "Error canceling all orders:",
         error.response ? error.response.data : error.message
       );
-      console.error(error);
     });
 }
 
-module.exports = executeOrder;
+module.exports = {
+  cancelAllOrders,
+};

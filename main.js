@@ -2,10 +2,13 @@ const WebSocket = require("ws");
 const { API_KEY, API_SECRET } = require("./keys");
 const { default: axios } = require("axios");
 const executeOrder = require("./executeOrder");
+const {cancelAllOrders} = require("./cancelPreviousOrders");
 
 // WebSocket URL
 // const wsUrl = "wss://ws.phemex.com";
 const wsUrl = "wss://testnet-api.phemex.com/ws";
+
+let previousOrder = {};
 
 // Symbol and ID
 const symbol = "sBTCUSDT";
@@ -99,18 +102,30 @@ ws.on("message", (data) => {
       console.log(spread);
       console.log(spreadPerc);
 
-      const multiplier = calculateOrderMultiplier(spread, 1/3);
+      const multiplier = calculateOrderMultiplier(spread, 1 / 3);
       const newLA =
         parseInt((parseFloat(lowestAsk) - multiplier) / 100000000) * 100000000;
       const newHB =
         parseInt((parseFloat(highestBid) + multiplier) / 100000000) * 100000000;
 
-      if (!checkConditions(lowestAsk, highestBid, 0.001, newLA, newHB)) {
+      if (!checkConditions(lowestAsk, highestBid, 0.001, newLA, newHB, previousOrder)) {
         return;
       }
 
+      cancelAllOrders(symbol)
+
       executeOrder(symbol, "Sell", 10000, newLA);
       executeOrder(symbol, "Buy", 10000, newHB);
+
+      console.log("+++++++++++++++")
+      console.log("Order Executed!")
+      console.log("+++++++++++++++")
+
+      previousOrder = {
+        ask: newLA,
+        bid: newHB
+      }
+
     }
   }
 });
@@ -173,12 +188,15 @@ function calculateOrderMultiplier(spread, margin) {
   return spread * margin;
 }
 
-function checkConditions(LA, HB, feesPerc, newLA, newHB) {
+function checkConditions(LA, HB, feesPerc, newLA, newHB, lastOrder) {
   let condition = false;
   if (
     newLA > newHB &&
     LA > HB &&
-    (1 - feesPerc) * newLA > (1 + feesPerc) * newHB
+    (1 - feesPerc) * newLA > (1 + feesPerc) * newHB &&
+    // Check if our last order is still the best
+    previousOrder.ask !== LA &&
+    previousOrder.bid !== HB
   ) {
     condition = true;
   }
